@@ -1,0 +1,32 @@
+FROM node:20-alpine as builder
+
+WORKDIR /server
+
+COPY package*.json .
+
+RUN npm install
+
+COPY prisma ./prisma
+RUN npx prisma generate
+
+
+COPY . .
+
+RUN npm run build
+
+
+FROM node:20-alpine as production
+
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+
+WORKDIR /server
+
+COPY package*.json .
+RUN npm install --only=production
+
+COPY --from=builder /server/dist ./dist
+# 👇 copy prisma directory
+COPY --from=builder /server/prisma ./prisma
+
+CMD [  "npm", "run", "production" ]
